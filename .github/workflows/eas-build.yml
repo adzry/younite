@@ -14,7 +14,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -26,28 +26,78 @@ jobs:
 
       - name: Deploy to Railway
         run: |
+          echo "🚀 Deploying to Railway..."
           npm install -g railway
           railway up --ci
+          echo "::notice title=Deployment::✅ Railway deploy command executed"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
       - name: Wait for API to be Live
-        run: sleep 20
-
-      - name: Health Check with Retries (Root + /health)
         run: |
-          for i in {1..5}; do
-            echo "Attempt $i: Checking API endpoints..."
+          echo "⏳ Waiting 30s for Railway to warm up..."
+          sleep 30
+
+      - name: Extended Health Check (Root + /health)
+        id: healthcheck
+        run: |
+          success=false
+          for i in {1..10}; do
+            echo "🔎 Attempt $i: Checking API endpoints..."
             ROOT=$(curl -s -o /dev/null -w "%{http_code}" https://younite-api.up.railway.app/)
             HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://younite-api.up.railway.app/health)
 
             if [ "$ROOT" = "200" ] && [ "$HEALTH" = "200" ]; then
-              echo "✅ Both root (/) and /health endpoints are OK"
-              exit 0
+              echo "::notice title=HealthCheck::✅ API endpoints healthy (root and /health)"
+              success=true
+              break
             fi
 
-            echo "⚠️ API not ready (root=$ROOT, health=$HEALTH), retrying in 10s..."
-            sleep 10
+            echo "::warning title=HealthCheck::⚠️ Not ready (root=$ROOT, health=$HEALTH), retrying in 15s..."
+            sleep 15
           done
-          echo "❌ API did not pass health checks after 5 attempts"
-          exit 1
+
+          if [ "$success" != "true" ]; then
+            echo "::error title=HealthCheck::❌ API did not pass health checks after 10 attempts"
+            exit 1
+          fi
+
+      - name: Auto-Redeploy if Health Check Failed
+        if: failure() && steps.healthcheck.outcome == 'failure'
+        run: |
+          echo "🔄 Redeploying via Railway..."
+          npm install -g railway
+          railway up --ci
+          echo "::notice title=Redeploy::📢 Redeploy triggered!"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Wait after Redeploy
+        if: failure() && steps.healthcheck.outcome == 'failure'
+        run: |
+          echo "⏳ Waiting 40s after redeploy..."
+          sleep 40
+
+      - name: Second Extended Health Check
+        if: failure() && steps.healthcheck.outcome == 'failure'
+        run: |
+          success=false
+          for i in {1..10}; do
+            echo "🔎 Second check attempt $i..."
+            ROOT=$(curl -s -o /dev/null -w "%{http_code}" https://younite-api.up.railway.app/)
+            HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://younite-api.up.railway.app/health)
+
+            if [ "$ROOT" = "200" ] && [ "$HEALTH" = "200" ]; then
+              echo "::notice title=HealthCheck::✅ API passed after redeploy!"
+              success=true
+              break
+            fi
+
+            echo "::warning title=HealthCheck::⚠️ Still not ready (root=$ROOT, health=$HEALTH), retrying in 15s..."
+            sleep 15
+          done
+
+          if [ "$success" != "true" ]; then
+            echo "::error title=HealthCheck::❌ FINAL FAIL: API failed even after redeploy retries"
+            exit 1
+          fi
