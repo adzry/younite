@@ -3,28 +3,21 @@ import express from "express";
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// ✅ Root route
+// Default root route
 app.get("/", (req, res) => {
-  res.json({
-    status: "ok",
-    message: "🚀 Younite API is live!"
-  });
+  res.json({ status: "ok", message: "YOUNITE API root is live 🚀" });
 });
 
-// ✅ Health route
+// Health check route
 app.get("/health", (req, res) => {
-  res.json({
-    status: "ok",
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString()
-  });
+  res.json({ status: "ok", service: "younite-api", uptime: process.uptime() });
 });
 
-// Example placeholder for future routes
-app.get("/api/v1/info", (req, res) => {
-  res.json({ app: "Younite API", version: "1.0.0" });
+// Fallback for unknown routes
+app.use((req, res) => {
+  res.status(404).json({ status: "error", code: 404, message: "Not Found" });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ API running on port ${PORT}`);
 });
