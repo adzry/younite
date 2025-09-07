@@ -1,7 +1,8 @@
-export default ({ config }) => ({
+export default {
   expo: {
     name: "YOUNITE",
     slug: "younite",
+    owner: "adzry",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -17,25 +18,22 @@ export default ({ config }) => ({
     assetBundlePatterns: ["**/*"],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.adzry.younite",
-      buildNumber: "1"
+      bundleIdentifier: "com.adzry.younite"
     },
     android: {
-      package: "com.adzry.younite",
-      versionCode: 1,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff"
-      }
+      },
+      package: "com.adzry.younite"
     },
     web: {
       favicon: "./assets/favicon.png"
     },
     extra: {
-      API_BASE_URL: process.env.API_BASE_URL || "http://localhost:3001",
       eas: {
-        projectId: "<your-eas-project-id>"
+        projectId: "00000000-0000-0000-0000-000000000000"
       }
     }
   }
-});
+};
