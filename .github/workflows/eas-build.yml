@@ -45,6 +45,7 @@ jobs:
         with:
           name: railway-logs
           path: railway.log
+          retention-days: 7
 
       - name: Wait for API to warm up
         run: |
