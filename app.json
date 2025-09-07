@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "younite",
+    "slug": "younite",
+    "version": "1.0.0",
+    "icon": "assets/fallback.png",
+    "splash": {
+      "image": "assets/fallback.png",
+      "backgroundColor": "#000000",
+      "resizeMode": "contain"
+    },
+    "android": {
+      "icon": "assets/fallback.png",
+      "adaptiveIcon": {
+        "foregroundImage": "assets/fallback.png",
+        "backgroundColor": "#000000"
+      },
+      "edgeToEdge": true
+    },
+    "assetBundlePatterns": [],
+    "web": { "favicon": "assets/fallback.png" }
+  }
+}

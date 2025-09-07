@@ -8,7 +8,8 @@
     "postbuild": "mkdir -p artifacts && echo \"📦 Saving build + logs...\" && (test -f railway.log && cp railway.log artifacts/railway-$(date +%Y%m%d-%H%M%S).log || echo \"⚠️ No railway.log found, creating placeholder\" && echo \"[NO LOGS AVAILABLE]\" > artifacts/railway-$(date +%Y%m%d-%H%M%S).log) && tar -czf artifacts/younite-logs-$(date +%Y%m%d-%H%M%S).tar.gz artifacts/railway-*.log",
     "build:android": "npx eas-cli build --platform android --profile preview --non-interactive",
     "deploy": "railway up --service younite-api",
-    "logs": "railway logs --service younite-api"
+    "logs": "railway logs --service younite-api",
+    "preprebuild": "bash scripts/prebuild-guard.sh"
   },
   "dependencies": {
     "cors": "^2.8.5",
