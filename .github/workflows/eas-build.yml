@@ -1,4 +1,5 @@
 name: EAS Build & Deploy
+
 on:
   push:
     branches: [ main ]
@@ -18,17 +19,20 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: EAS Build (Preview Android, pinned CLI)
+      - name: Verify CLI versions
         run: |
-          echo "🏗️ Running EAS build with pinned CLI..."
-          npx eas-cli@3.19.4 build --platform android --profile preview --non-interactive | tee build.log
+          npx eas-cli --version
+          npx railway --version
+
+      - name: EAS Build (Preview Android)
+        run: npx eas-cli build --platform android --profile preview --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Deploy to Railway (pinned CLI)
+      - name: Deploy to Railway
         run: |
           echo "🚀 Deploying to Railway..."
-          npx railway@3.16.2 up --service younite-api | tee railway-deploy.log
+          npx railway up --service younite-api
           echo "::notice title=Deployment::✅ Railway deploy triggered"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -36,53 +40,49 @@ jobs:
       - name: Fetch Railway logs
         run: |
           echo "📜 Capturing Railway logs..."
-          npx railway@3.16.2 logs --service younite-api > railway-runtime.log || echo "⚠️ Failed to fetch logs"
+          npx railway logs --service younite-api > railway.log || echo "⚠️ Failed to fetch logs"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-      - name: Extended Health Check with Slack-style Logs
-        id: healthcheck
-        run: |
-          success=false
-          for i in {1..20}; do
-            echo "🔎 Attempt $i: Checking API..." | tee -a healthcheck.log
-            ROOT=$(curl -s -o /dev/null -w "%{http_code}" https://younite-api.up.railway.app/)
-            HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://younite-api.up.railway.app/health)
-
-            echo "📡 root=$ROOT | health=$HEALTH" | tee -a healthcheck.log
-            if [ "$ROOT" = "200" ] && [ "$HEALTH" = "200" ]; then
-              echo "::notice title=HealthCheck::✅ API healthy on attempt $i" | tee -a healthcheck.log
-              success=true
-              break
-            fi
-
-            echo "::warning title=HealthCheck::⚠️ Not ready (root=$ROOT, health=$HEALTH), retrying in 15s..." | tee -a healthcheck.log
-            sleep 15
-          done
-          if [ "$success" != "true" ]; then
-            echo "::error title=HealthCheck::❌ API failed health check after 20 attempts" | tee -a healthcheck.log
-            exit 1
-          fi
-
-      - name: Bundle all logs into artifact
-        run: |
-          mkdir -p artifacts
-          TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
-          LOGFILE="younite-logs-${TIMESTAMP}-${{ github.run_id }}.tar.gz"
-          tar -czf "artifacts/$LOGFILE" build.log railway-deploy.log railway-runtime.log healthcheck.log || echo "⚠️ No logs found"
-          ln -sf "$LOGFILE" "artifacts/younite-logs-latest.tar.gz"
-          echo "LOGFILE=artifacts/$LOGFILE" >> $GITHUB_ENV
-
-      - name: Upload bundled logs (timestamped + latest)
+      - name: Upload Railway logs artifact
         uses: actions/upload-artifact@v4
         with:
           name: younite-logs-${{ github.run_id }}
-          path: artifacts/
+          path: railway.log
           retention-days: 14
 
       - name: Print artifact info in summary
         run: |
           echo "### 📦 Logs Artifact Available" >> $GITHUB_STEP_SUMMARY
           echo "- Artifact: **younite-logs-${{ github.run_id }}**" >> $GITHUB_STEP_SUMMARY
-          echo "- Files: timestamped logs + latest.tar.gz" >> $GITHUB_STEP_SUMMARY
+          echo "- File: railway.log" >> $GITHUB_STEP_SUMMARY
           echo "- Download via [Actions Artifacts UI](./runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+
+      - name: Wait for API to warm up
+        run: |
+          echo "⏳ Waiting 30s for Railway to warm up..."
+          sleep 30
+
+      - name: Extended Health Check with Slack-style Logs
+        id: healthcheck
+        run: |
+          success=false
+          for i in {1..15}; do
+            echo "🔎 Attempt $i: Checking API..."
+            ROOT=$(curl -s -o /dev/null -w "%{http_code}" https://younite-api.up.railway.app/)
+            HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://younite-api.up.railway.app/health)
+
+            echo "📡 root=$ROOT | health=$HEALTH"
+            if [ "$ROOT" = "200" ] && [ "$HEALTH" = "200" ]; then
+              echo "::notice title=HealthCheck::✅ API healthy on attempt $i"
+              success=true
+              break
+            fi
+
+            echo "::warning title=HealthCheck::⚠️ Not ready (root=$ROOT, health=$HEALTH), retrying in 15s..."
+            sleep 15
+          done
+          if [ "$success" != "true" ]; then
+            echo "::error title=HealthCheck::❌ API failed health check after 15 attempts"
+            exit 1
+          fi
