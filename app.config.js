@@ -1,37 +1,21 @@
-export default {
-  name: "YOUNITE",
-  slug: "younite",
-  owner: "adzry",
-  version: "1.0.0",
-  orientation: "portrait",
-  icon: "./assets/icon.png",
-  userInterfaceStyle: "automatic",
-  splash: {
-    image: "./assets/splash.png",
-    resizeMode: "contain",
-    backgroundColor: "#ffffff"
-  },
-  updates: {
-    fallbackToCacheTimeout: 0
-  },
-  assetBundlePatterns: ["**/*"],
-  ios: {
-    supportsTablet: true,
-    bundleIdentifier: "com.adzry.younite"
-  },
+const IS_DEV = process.env.APP_VARIANT === 'development';
+const IS_PREVIEW = process.env.APP_VARIANT === 'preview';
+
+const getUniqueIdentifier = () => {
+  if (IS_DEV) return 'com.younite.dev';
+  if (IS_PREVIEW) return 'com.younite.preview';
+  return 'com.younite';
+};
+
+module.exports = {
+  name: IS_PREVIEW ? 'Younite (Preview)' : 'Younite',
+  slug: 'younite',
+  version: '1.0.0',
   android: {
-    adaptiveIcon: {
-      foregroundImage: "./assets/adaptive-icon.png",
-      backgroundColor: "#ffffff"
-    },
-    package: "com.adzry.younite"
-  },
-  web: {
-    favicon: "./assets/favicon.png"
+    package: getUniqueIdentifier(),
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json'
   },
   extra: {
-    eas: {
-      projectId: "34f83910-a686-4183-947a-c3d41b63bffe"
-    }
+    apiUrl: process.env.EXPO_PUBLIC_API_URL
   }
 };

@@ -7,11 +7,13 @@
       "node": "20.11.1",
       "distribution": "internal",
       "android": {
-        "gradleCommand": ":app:assembleRelease"
+        "gradleCommand": ":app:assembleRelease",
+        "credentialsSource": "remote"
       },
       "env": {
-        "API_BASE_URL": "https://younite-api.up.railway.app"
-      }
+        "APP_VARIANT": "preview"
+      },
+      "environment": "preview"
     }
   }
 }
