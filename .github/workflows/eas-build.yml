@@ -28,7 +28,7 @@ jobs:
         run: |
           echo "🚀 Deploying to Railway..."
           npm install -g railway
-          railway up --ci
+          railway up
           echo "::notice title=Deployment::✅ Railway deploy triggered"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -37,7 +37,7 @@ jobs:
         run: |
           echo "📜 Fetching Railway logs..."
           npm install -g railway
-          railway logs --service younite-api --ci --tail 60
+          railway logs --service younite-api --tail 60
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
@@ -46,8 +46,7 @@ jobs:
           echo "⏳ Waiting 30s for Railway to warm up..."
           sleep 30
 
-      - name: Extended Health Check with Slack-style Logs
-        id: healthcheck
+      - name: Extended Health Check
         run: |
           success=false
           for i in {1..15}; do
@@ -56,69 +55,16 @@ jobs:
             HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://younite-api.up.railway.app/health)
 
             echo "📡 root=$ROOT | health=$HEALTH"
-
             if [ "$ROOT" = "200" ] && [ "$HEALTH" = "200" ]; then
               echo "::notice title=HealthCheck::✅ API healthy on attempt $i"
               success=true
               break
             fi
 
-            echo "::warning title=HealthCheck::⚠️ Not ready (root=$ROOT, health=$HEALTH), retrying in 15s..."
+            echo "::warning title=HealthCheck::⚠️ Not ready, retrying in 15s..."
             sleep 15
           done
-
           if [ "$success" != "true" ]; then
             echo "::error title=HealthCheck::❌ API failed health check after 15 attempts"
-            exit 1
-          fi
-
-      - name: Auto-Redeploy on Failure
-        if: failure() && steps.healthcheck.outcome == 'failure'
-        run: |
-          echo "🔄 Redeploying via Railway..."
-          npm install -g railway
-          railway up --ci
-          echo "::notice title=Redeploy::📢 Redeploy triggered!"
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Pipe Railway Logs (post-redeploy)
-        if: failure() && steps.healthcheck.outcome == 'failure'
-        run: |
-          echo "📜 Fetching Railway logs after redeploy..."
-          npm install -g railway
-          railway logs --service younite-api --ci --tail 60
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Wait after Redeploy
-        if: failure() && steps.healthcheck.outcome == 'failure'
-        run: |
-          echo "⏳ Waiting 40s after redeploy..."
-          sleep 40
-
-      - name: Second Extended Health Check
-        if: failure() && steps.healthcheck.outcome == 'failure'
-        run: |
-          success=false
-          for i in {1..10}; do
-            echo "🔎 Second pass attempt $i..."
-            ROOT=$(curl -s -o /dev/null -w "%{http_code}" https://younite-api.up.railway.app/)
-            HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://younite-api.up.railway.app/health)
-
-            echo "📡 root=$ROOT | health=$HEALTH"
-
-            if [ "$ROOT" = "200" ] && [ "$HEALTH" = "200" ]; then
-              echo "::notice title=HealthCheck::✅ API passed after redeploy!"
-              success=true
-              break
-            fi
-
-            echo "::warning title=HealthCheck::⚠️ Still not ready, retrying in 15s..."
-            sleep 15
-          done
-
-          if [ "$success" != "true" ]; then
-            echo "::error title=HealthCheck::❌ FINAL FAIL: API failed even after redeploy retries"
             exit 1
           fi
