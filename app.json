@@ -15,9 +15,19 @@
         "foregroundImage": "assets/fallback.png",
         "backgroundColor": "#000000"
       },
-      "edgeToEdge": true
+      "edgeToEdge": true,
+      "useNextNotificationsApi": true
     },
     "assetBundlePatterns": [],
-    "web": { "favicon": "assets/fallback.png" }
+    "web": {
+      "favicon": "assets/fallback.png"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    }
   }
 }
