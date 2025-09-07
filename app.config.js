@@ -29,5 +29,9 @@ export default {
   web: {
     favicon: "./assets/favicon.png"
   },
-  // 🚀 Remove broken projectId; eas init will inject the correct one
+  extra: {
+    eas: {
+      projectId: "34f83910-a686-4183-947a-c3d41b63bffe"
+    }
+  }
 };
