@@ -11,7 +11,8 @@
         "credentialsSource": "remote"
       },
       "env": {
-        "APP_VARIANT": "preview"
+        "APP_VARIANT": "preview",
+        "EXPO_PUBLIC_API_URL": "https://younite-api.up.railway.app"
       },
       "environment": "preview"
     }
