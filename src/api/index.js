@@ -1,19 +1,28 @@
-// API configuration and methods will be implemented here
-export const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001';
+const express = require("express");
+const cors = require("cors");
 
-export const api = {
-  // Chat methods
-  sendMessage: async (message) => {
-    console.log('Sending message:', message);
-    // TODO: Implement actual API call
-    return { success: true, response: 'This is a mock response' };
-  },
+const app = express();
+const PORT = process.env.PORT || 3001;
 
-  // User methods
-  login: async (credentials) => {
-    // TODO: Implement login API
-    return { success: true, user: { id: 1, name: 'Test User' } };
-  },
+// Enable CORS for Expo app
+app.use(cors());
+app.use(express.json());
 
-  // Other API methods will be added here
-};
+// Root route
+app.get("/", (req, res) => {
+  res.json({ message: "🚀 Younite API is live!" });
+});
+
+// Health check
+app.get("/status", (req, res) => {
+  res.json({ status: "ok", timestamp: Date.now() });
+});
+
+// Example placeholder route
+app.get("/hello", (req, res) => {
+  res.json({ greeting: "Hello from Younite API 👋" });
+});
+
+app.listen(PORT, () => {
+  console.log(`✅ API running on port ${PORT}`);
+});

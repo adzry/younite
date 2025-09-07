@@ -1,29 +1,18 @@
 {
   "cli": {
-    "version": ">= 3.18.0",
-    "appVersionSource": "remote"
+    "version": ">= 3.0.0"
   },
   "build": {
     "preview": {
-      "developmentClient": true,
       "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      },
       "env": {
-        "API_BASE_URL": "https://staging.api.younite.com"
+        "API_BASE_URL": "https://younite-api.up.railway.app"
       }
     },
     "production": {
-      "autoIncrement": true,
-      "android": {
-        "gradleCommand": ":app:bundleRelease"
-      },
-      "ios": {
-        "buildConfiguration": "Release"
-      },
+      "distribution": "store",
       "env": {
-        "API_BASE_URL": "https://api.younite.com"
+        "API_BASE_URL": "https://younite-api.up.railway.app"
       }
     }
   },
