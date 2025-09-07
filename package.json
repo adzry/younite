@@ -10,7 +10,7 @@
     "build:android": "eas-cli build --platform android --profile preview --non-interactive",
     "deploy": "railway up --service younite-api",
     "logs": "railway logs --service younite-api",
-    "postbuild": "mkdir -p artifacts && echo \"📦 Saving build + logs...\" && cp -f railway.log artifacts/railway-$(date +%Y%m%d-%H%M%S).log && tar -czf artifacts/younite-logs-$(date +%Y%m%d-%H%M%S).tar.gz railway.log || true"
+    "postbuild": "mkdir -p artifacts && echo \"📦 Saving build + logs...\" && (test -f railway.log && cp railway.log artifacts/railway-$(date +%Y%m%d-%H%M%S).log || echo \"⚠️ No railway.log found, creating placeholder\" && echo \"[NO LOGS AVAILABLE]\" > artifacts/railway-$(date +%Y%m%d-%H%M%S).log) && tar -czf artifacts/younite-logs-$(date +%Y%m%d-%H%M%S).tar.gz artifacts/railway-*.log"
   },
   "dependencies": {
     "cors": "^2.8.5",
