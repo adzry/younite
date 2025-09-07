@@ -6,7 +6,11 @@
   "scripts": {
     "start": "node src/api/index.js",
     "dev": "nodemon src/api/index.js",
-    "build": "echo 'Expo/EAS handles app build'"
+    "build": "echo 'Expo/EAS handles app build'",
+    "build:android": "eas-cli build --platform android --profile preview --non-interactive",
+    "deploy": "railway up --service younite-api",
+    "logs": "railway logs --service younite-api",
+    "postbuild": "mkdir -p artifacts && echo \"📦 Saving build + logs...\" && cp -f railway.log artifacts/railway-$(date +%Y%m%d-%H%M%S).log && tar -czf artifacts/younite-logs-$(date +%Y%m%d-%H%M%S).tar.gz railway.log || true"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -17,7 +21,7 @@
     "node": ">=20.19.4"
   },
   "devDependencies": {
-    "eas-cli": "^3.19.6",
-    "railway": "^4.6.3"
+    "eas-cli": "3.19.2",
+    "railway": "3.16.2"
   }
 }
