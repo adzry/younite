@@ -28,7 +28,7 @@ jobs:
       - name: Deploy to Railway
         run: |
           echo "🚀 Deploying to Railway..."
-          npx railway up --service younite-api
+          railway up --service younite-api
           echo "::notice title=Deployment::✅ Railway deploy triggered"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -36,7 +36,7 @@ jobs:
       - name: Fetch Railway logs
         run: |
           echo "📜 Capturing Railway logs..."
-          npx railway logs --service younite-api > railway.log || echo "⚠️ Failed to fetch logs"
+          railway logs --service younite-api > railway.log || echo "⚠️ Failed to fetch logs"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
