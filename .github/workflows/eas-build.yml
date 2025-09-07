@@ -1,5 +1,4 @@
 name: EAS Build & Deploy
-
 on:
   push:
     branches: [ main ]
@@ -28,25 +27,32 @@ jobs:
         run: |
           echo "🚀 Deploying to Railway..."
           npm install -g railway
-          railway up
+          railway up --service younite-api
           echo "::notice title=Deployment::✅ Railway deploy triggered"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-      - name: Pipe Railway Logs (post-deploy)
+      - name: Fetch Railway logs
         run: |
-          echo "📜 Fetching Railway logs..."
+          echo "📜 Capturing Railway logs..."
           npm install -g railway
-          railway logs --service younite-api --tail 60
+          railway logs --service younite-api > railway.log || echo "⚠️ Failed to fetch logs"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Upload Railway logs artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: railway-logs
+          path: railway.log
 
       - name: Wait for API to warm up
         run: |
           echo "⏳ Waiting 30s for Railway to warm up..."
           sleep 30
 
-      - name: Extended Health Check
+      - name: Extended Health Check with Slack-style Logs
+        id: healthcheck
         run: |
           success=false
           for i in {1..15}; do
@@ -61,7 +67,7 @@ jobs:
               break
             fi
 
-            echo "::warning title=HealthCheck::⚠️ Not ready, retrying in 15s..."
+            echo "::warning title=HealthCheck::⚠️ Not ready (root=$ROOT, health=$HEALTH), retrying in 15s..."
             sleep 15
           done
           if [ "$success" != "true" ]; then
