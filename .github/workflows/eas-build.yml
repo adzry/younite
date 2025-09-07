@@ -1,0 +1,100 @@
+name: YOUNITE EAS Build & Submit
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout repo
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      # Setup Node
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: "npm"
+
+      # Setup Expo & EAS
+      - name: 🚀 Setup Expo & EAS
+        run: |
+          npm install -g expo-cli eas-cli
+
+      # Install dependencies (with peer-dep bypass)
+      - name: 📦 Install dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm cache clean --force
+          npm install --legacy-peer-deps || npm install --force
+          npx expo install expo-dev-client -- --legacy-peer-deps || npm install expo-dev-client --force
+
+      # Deep diagnostics
+      - name: 🧪 Run deep diagnostics
+        run: |
+          npm audit || true
+          npx expo-doctor || true
+          eas doctor || true
+
+      # Auto bump version
+      - name: 🔖 Auto bump patch version
+        run: |
+          npm version patch -m "chore: bump version [skip ci]"
+          node - <<'EOF'
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const eas = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
+          if (!eas.cli) eas.cli = {};
+          eas.cli.appVersionSource = "remote";
+          fs.writeFileSync('eas.json', JSON.stringify(eas, null, 2));
+          console.log("✅ eas.json synced with remote versioning");
+          EOF
+
+      # Verify app.config.js
+      - name: ✅ Verify app.config.js alignment
+        run: |
+          node - <<'EOF'
+          const fs = require('fs');
+          const config = fs.readFileSync('app.config.js', 'utf8');
+          if (!config.includes("34f83910-a686-4183-947a-c3d41b63bffe")) {
+            console.error("❌ projectId mismatch in app.config.js!");
+            process.exit(1);
+          } else {
+            console.log("✅ projectId verified in app.config.js");
+          }
+          EOF
+
+      # Commit & push changes
+      - name: 🔄 Commit & push updated configs
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json eas.json app.config.js || true
+          git commit -m "chore: sync configs, bump version, ensure alignment" || echo "⚠️ Nothing to commit"
+          git push || true
+
+      # EAS Build
+      - name: 📱 EAS Android Build (preview → production fallback)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if ! eas build --platform android --profile preview --non-interactive; then
+            echo "⚠️ Preview build failed, retrying as Production..."
+            eas build --platform android --profile production --non-interactive
+          fi
+
+      # EAS Submit (only if eas.json exists)
+      - name: 📤 EAS Auto Submit
+        if: success()
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -f "eas.json" ]; then
+            eas submit -p android --latest --non-interactive || echo "⚠️ Auto-submit skipped"
+          fi
